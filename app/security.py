@@ -1,18 +1,29 @@
 import os
 from passlib.context import CryptContext
+from cryptography.fernet import Fernet
 
-# Force passlib to use pure-python bcrypt backend (stable on Ubuntu/WSL)
-os.environ["PASSLIB_USE_CEXT_BCRYPT"] = "0"
+# ---------------- PASSWORD HASHING ---------------- #
 
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__rounds=12,
-    bcrypt__ident="2b"
-)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
-def verify_password(password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+# ---------------- FIELD ENCRYPTION ---------------- #
+
+FERNET_KEY = os.getenv("FERNET_KEY")
+
+if not FERNET_KEY:
+    raise RuntimeError("FERNET_KEY is not set in environment variables")
+
+fernet = Fernet(FERNET_KEY.encode())
+
+def encrypt_text(text: str) -> str:
+    return fernet.encrypt(text.encode()).decode()
+
+def decrypt_text(token: str) -> str:
+    return fernet.decrypt(token.encode()).decode()
